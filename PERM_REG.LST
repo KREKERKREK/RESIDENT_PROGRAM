@@ -1,0 +1,65 @@
+Turbo Assembler	 Version 4.1	    03/14/26 13:28:00	    Page 1
+perm_reg.asm
+
+
+
+      1	0000			     .model tiny
+      2	0000			     .code
+      3				     org 100h
+      4
+      5
+      6
+      7	0100			     Start:
+      8	0100  B8 1111				     mov ax, 1111h
+      9	0103  BB 2222				     mov bx, 2222h
+     10	0106  B9 3333				     mov cx, 3333h
+     11	0109  BA 4444				     mov dx, 4444h
+     12	010C  BE 5555				     mov si, 5555h
+     13	010F  BF 6666				     mov di, 6666h
+     14	0112  BD 7777				     mov bp, 7777h
+     15	0115  BC 8888				     mov sp, 8888h
+     16
+     17						     ;push 9999h
+     18						     ;pop ds
+     19						     ;push 0aaaah
+     20						     ;pop es
+     21
+     22	0118			     EternalCycle:
+     23	0118  90				     nop
+     24	0119  EB FD				     jmp EternalCycle
+     25
+     26
+     27				     End	     Start
+Turbo Assembler	 Version 4.1	    03/14/26 13:28:00	    Page 2
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "03/14/26"
+??FILENAME			  Text	 "perm_reg"
+??TIME				  Text	 "13:28:00"
+??VERSION			  Number 040A
+@32BIT				  Text	 0
+@CODE				  Text	 DGROUP
+@CODESIZE			  Text	 0
+@CPU				  Text	 0101H
+@CURSEG				  Text	 _TEXT
+@DATA				  Text	 DGROUP
+@DATASIZE			  Text	 0
+@FILENAME			  Text	 PERM_REG
+@INTERFACE			  Text	 000H
+@MODEL				  Text	 1
+@STACK				  Text	 DGROUP
+@WORDSIZE			  Text	 2
+ETERNALCYCLE			  Near	 DGROUP:0118
+START				  Near	 DGROUP:0100
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+DGROUP				  Group
+  _DATA				  16  0000 Word	  Public  DATA
+  _TEXT				  16  011B Word	  Public  CODE
+

@@ -4,30 +4,31 @@ org 100h
 
 
 
-VIDEO_SEG       equ 0B800h
-COLOR_TEXT      equ 00101110b
-HOT_KEY         equ 31
+VIDEO_SEG           equ 0B800h
+COLOR_TEXT          equ 00101110b
+HOT_KEY_PRINT_FRAME equ 31                          ; symbol 's'
+HOT_KEY_UPD_REGS    equ 20                          ; symbol 't'
 
 
 
 ;--------------------------------------------------------------;
-;                  set the new keyboard handler                ;
+;                     set the new handlers                     ;
 ;--------------------------------------------------------------;
 Start:
-                mov ax, 3509h                       ; return the adress of handler to ES:BX
-                int 21h
+                mov ax, 0
+                mov es, ax                          ; reset ES (for access to change adress of handler)
 
-                mov cs:[offs_old_hand09], bx        ; save the offset of the old handler
-                mov bx, es
-                mov cs:[segm_old_hand09], bx        ; save the segment of the old handler
+
+                mov bx, 09h * 4d                    ; set the offset to change the adress of keyboard handler
+                mov ax, es:[bx]
+
+                mov cs:[offs_old_hand09], ax        ; save the offset of the old handler
+                mov ax, es:[bx + 2]
+                mov cs:[segm_old_hand09], ax        ; save the segment of the old handler
 
 
                 cli                                 ; throw off the flag of interruptions
 
-                mov ax, 0h
-                mov es, ax                          ; reset ES (for access to change adress of handler)
-
-                mov bx, 09h * 4                     ; set the offset to change the adress of handler
                 mov es:[bx], offset ShowRegisters   ; change the offset of address of handler
                 mov ax, cs
                 mov es:[bx + 2], ax                 ; change the segment of address of handler
@@ -35,13 +36,30 @@ Start:
                 sti                                 ; allow interruptions
 
 
+                mov bx, 08h * 4d                    ; set the offset to change the adress of timer handler
+                mov ax, es:[bx]
+
+                mov cs:[offs_old_hand08], ax        ; save the offset of the old handler
+                mov ax, es:[bx + 2]
+                mov cs:[segm_old_hand08], ax        ; save the segment of the old handler
+
+
+                cli                                 ; throw off the flag of interruptions
+
+                mov es:[bx], offset NewTimeHand     ; set the offset of the new timer handler
+                mov ax, cs
+                mov es:[bx + 2], ax                 ; set the segment of the new timer handler
+
+                sti                                 ; allow interruptions
+
+
                 mov ax, 3100h                       ; keep resident after finish the program (don't clear the products of the program)
                 mov dx, offset EndOfProgram         ;
-                shr dx, 4                           ;
+                shr dx, 4d                          ;
                 inc dx                              ;
                 int 21h                             ;
 ;--------------------------------------------------------------;
-;         the end to setting the new keyboard handler          ;
+;              the end to setting the new handlers             ;
 ;--------------------------------------------------------------;
 
 
@@ -73,9 +91,32 @@ ShowRegisters PROC NEAR
                 mov bx, (80d * 2d + 64d) * 2d       ;
 
                 in al, 60h                          ; set symbol code to AL from the port 60h
-                cmp al, HOT_KEY                     ; compare AL with the HOT_KEY
-                jne SkipPrintFrame                  ; if (AL != HOT_KEY) go to SkipPrintFrame
-                call PrintFrame                     ; else go to PrintFrame
+                cmp al, HOT_KEY_PRINT_FRAME
+                jne CheckHotKeyUpdRegs              ; if (AL != HOT_KEY_PRINT_FRAME): go to CheckHotKeyUpdRegs
+                call PrintFrame                     ; else: go to PrintFrame
+                jmp SkipPrintFrame
+
+CheckHotKeyUpdRegs:
+                cmp cs:[flg_frame_on_scrn], 0
+                je SkipPrintFrame                   ; if (frame isn't on the screen) go to SkipPrintFrame
+                cmp al, HOT_KEY_UPD_REGS            ;
+                je SwitchFlagUpdatingRegs           ; if (AL == HOT_KEY_UPD_REGS) go to SwitchFlagUpdatingRegs
+                jmp SkipPrintFrame                  ; else: go to SkipPrintFrame
+
+
+
+SwitchFlagUpdatingRegs:                             ; change the value of the updating flag
+                cmp cs:[flg_updating_regs], 0       ;
+                jne TurnOffFlagUpdatingRegs         ; (if the flag was be 1, he will be 0)
+                                                    ; (if the flag was be 0, he will be 1)
+                mov cs:[flg_updating_regs], 1d      ;
+                jmp SkipPrintFrame                  ;
+                                                    ;
+TurnOffFlagUpdatingRegs:                            ;
+                mov cs:[flg_updating_regs], 0d      ;
+                jmp SkipPrintFrame                  ;
+
+
 
 
 SkipPrintFrame:
@@ -115,6 +156,8 @@ ShowRegisters ENDP
 PrintFrame PROC NEAR
                 push ax bx cx dx si di bp sp ds es ss
 
+
+                mov cs:[flg_frame_on_scrn], 1       ; set the flag of frame on the screen
 
                 mov si, 1d                          ; SI is a number of register to the print (AX - 1; BX - 2; CX - 3; DX - 4; SI - 5; DI - 6; BP - 7; SP - 8; DS - 9; ES - 10; SS - 11; CS - 12; IP - 13)
 
@@ -314,17 +357,17 @@ MakeLowerRightCornerCharacter:
                 mov es:[bx], ax
 
 
-                sub bx, 2 * 80                      ; change the position of printing to the next part of frame
+                sub bx, 2d * 80d                    ; change the position of printing to the next part of frame
                 mov cx, 0                           ; CX - counter of symbols
 MakeVerticalRightLine:
                 mov al, 186                         ; ASCII code of the vertical symbol
                 mov ah, COLOR_TEXT
                 mov es:[bx], ax
 
-                sub bx, 2 * 80                      ; change the position of printing
+                sub bx, 2d * 80d                    ; change the position of printing
                 inc cx
 
-                cmp cx, 13d                          ; if (cx < 9):
+                cmp cx, 13d                         ; if (cx < 9):
                 jb MakeVerticalRightLine            ; go to MakeVerticalRightLine
 
 
@@ -334,7 +377,7 @@ MakeUpperRightCornerCharacter:
                 mov es:[bx], ax
 
 
-                sub bx, 2                           ; change the position of printing to the next part of frame
+                sub bx, 2d                          ; change the position of printing to the next part of frame
                 mov cx, 0                           ; CX - counter of symbols
 MakeHorizontalUpperLine:
                 mov al, 205                         ; ASCII code of the horizontal symbol
@@ -354,18 +397,18 @@ MakeUpperLeftCornerCharacter:
                 mov es:[bx], ax
 
 
-                add bx, 2 * 80                      ; change the position of printing to the next part of frame
+                add bx, 2d * 80d                    ; change the position of printing to the next part of frame
                 mov cx, 0                           ; CX - counter of symbols
 MakeVerticalLeftLine:
                 mov al, 186                         ; ASCII code of the vertical symbol
                 mov ah, COLOR_TEXT
                 mov es:[bx], ax
 
-                add bx, 2 * 80                      ; change the position of printing
+                add bx, 2d * 80d                    ; change the position of printing
                 inc cx
 
-                cmp cx, 13d                          ; if (cx < 9):
-                jb MakeVerticalLeftLine              ; go to MakeVerticalLeftLine
+                cmp cx, 13d                         ; if (cx < 9):
+                jb MakeVerticalLeftLine             ; go to MakeVerticalLeftLine
 
 
 MakeLowerLeftCornerCharacter:
@@ -383,6 +426,68 @@ EndOfPrintingRegisters:
                 ret
 
 PrintFrame ENDP
+
+
+
+;--------------------------------------------------------------;
+;               updating registers in real time                ;
+;--------------------------------------------------------------;
+NewTimeHand PROC NEAR
+                mov cs:[value_sp], sp               ; save the values from 
+                mov cs:[value_bp], bp               ; save the value from BP
+                mov cs:[value_ax], ax               ; save the values of registers to print
+
+                mov bp, cs:[value_sp]               ; SP can be change, so we save the value SP in BP
+                mov ax, [bp]                        ; save values of registers (IP, CS) from stack
+                mov cs:[value_ip], ax               ;
+                mov ax, [bp + 2]                    ;
+                mov cs:[value_cs], ax               ;
+
+                mov cs:[value_bx], bx               ;
+                mov cs:[value_cx], cx               ;
+                mov cs:[value_dx], dx               ;
+                mov cs:[value_si], si               ;
+                mov cs:[value_di], di               ;
+                mov cs:[value_ds], ds               ;
+                mov cs:[value_es], es               ;
+                mov cs:[value_ss], ss               ;
+
+
+                pushf
+                call dword ptr cs:[offs_old_hand08]
+
+
+                cmp cs:[flg_updating_regs], 0       ; if (flag of the udating registers is ON):
+                jne UpdateRegisters                 ;   go to UpdateRegisters
+                jmp EndOfUpdatingRegisters          ; else: go to EndOfUpdatingRegisters
+
+UpdateRegisters:
+                mov ax, VIDEO_SEG                   ; set the ES:BX (segment:offset) to the place of screen, where will be printing a first symbol
+                mov es, ax                          ;
+                mov bx, (80d * 2d + 64d) * 2d       ;
+
+                call PrintFrame
+
+
+EndOfUpdatingRegisters:
+                mov sp, cs:[value_sp]               ; return the values to the registers
+                mov bp, cs:[value_bp]               ; instead of "pop"
+                mov ax, cs:[value_ax]               ;
+                mov bx, cs:[value_bx]               ;
+                mov cx, cs:[value_cx]               ;
+                mov dx, cs:[value_dx]               ;
+                mov si, cs:[value_si]               ;
+                mov di, cs:[value_di]               ;
+                mov ds, cs:[value_ds]               ;
+                mov es, cs:[value_es]               ;
+                mov ss, cs:[value_ss]               ;
+
+                iret
+
+NewTimeHand ENDP
+;--------------------------------------------------------------;
+;          the end of updating registers in real time          ;
+;--------------------------------------------------------------;
 
 
 
@@ -414,6 +519,12 @@ value_ss     dw 0
 value_cs     dw 0
 value_ip     dw 0
 convert_num  db "0123456789ABCDEF"
+
+offs_old_hand08     dw 0
+segm_old_hand08     dw 0
+
+flg_frame_on_scrn   db 0
+flg_updating_regs   db 0
 
 
 

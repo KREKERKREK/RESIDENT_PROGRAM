@@ -1,4 +1,4 @@
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 1
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 1
 resident.asm
 
 
@@ -9,489 +9,625 @@ resident.asm
       4
       5
       6
-      7	      =B800		     VIDEO_SEG	     equ 0B800h
-      8	      =002E		     COLOR_TEXT	     equ 00101110b
-      9	      =001F		     HOT_KEY	     equ 31
-     10
+      7	      =B800		     VIDEO_SEG		 equ 0B800h
+      8	      =002E		     COLOR_TEXT		 equ 00101110b
+      9	      =001F		     HOT_KEY_PRINT_FRAME equ 31				 ; symbol 's'
+     10	      =0014		     HOT_KEY_UPD_REGS	 equ 20				 ; symbol 't'
      11
      12
-     13				     ;--------------------------------------------------------------;
-     14				     ;			set the	new keyboard handler		    ;
-     15				     ;--------------------------------------------------------------;
-     16	0100			     Start:
-     17	0100  B8 3509				     mov ax, 3509h			 ; return the adress of	handler	to ES:BX
-     18	0103  CD 21				     int 21h
-     19
-     20	0105  2E: 89 1E	01C8r			     mov cs:[offs_old_hand09], bx	 ; save	the offset of the old handler
-     21	010A  8C C3				     mov bx, es
-     22	010C  2E: 89 1E	01CAr			     mov cs:[segm_old_hand09], bx	 ; save	the segment of the old handler
-     23
-     24
-     25	0111  FA				     cli				 ; throw off the flag of interruptions
+     13
+     14				     ;--------------------------------------------------------------;
+     15				     ;			   set the new handlers			    ;
+     16				     ;--------------------------------------------------------------;
+     17	0100			     Start:
+     18	0100  B8 0000				     mov ax, 0
+     19	0103  8E C0				     mov es, ax				 ; reset ES (for access	to change adress of +
+     20				     handler)
+     21
+     22
+     23	0105  BB 0024				     mov bx, 09h * 4d			 ; set the offset to change the	adress of   +
+     24				     keyboard handler
+     25	0108  26: 8B 07				     mov ax, es:[bx]
      26
-     27	0112  B8 0000				     mov ax, 0h
-     28	0115  8E C0				     mov es, ax				 ; reset ES (for access	to change adress of +
-     29				     handler)
+     27	010B  2E: A3 0213r			     mov cs:[offs_old_hand09], ax	 ; save	the offset of the old handler
+     28	010F  26: 8B 47	02			     mov ax, es:[bx + 2]
+     29	0113  2E: A3 0215r			     mov cs:[segm_old_hand09], ax	 ; save	the segment of the old handler
      30
-     31	0117  BB 0024				     mov bx, 09h * 4			 ; set the offset to change the	adress of   +
-     32				     handler
-     33	011A  26: C7 07	0137r			     mov es:[bx], offset ShowRegisters	 ; change the offset of	address	of handler
-     34	011F  8C C8				     mov ax, cs
-     35	0121  26: 89 47	02			     mov es:[bx	+ 2], ax		 ; change the segment of address of handler
-     36
-     37	0125  FB				     sti				 ; allow interruptions
-     38
+     31
+     32	0117  FA				     cli				 ; throw off the flag of interruptions
+     33
+     34	0118  26: C7 07	0154r			     mov es:[bx], offset ShowRegisters	 ; change the offset of	address	of handler
+     35	011D  8C C8				     mov ax, cs
+     36	011F  26: 89 47	02			     mov es:[bx	+ 2], ax		 ; change the segment of address of handler
+     37
+     38	0123  FB				     sti				 ; allow interruptions
      39
-     40	0126  B8 3100				     mov ax, 3100h			 ; keep	resident after finish the program   +
-     41				     (don't clear the products of the program)
-     42	0129  BA 0078r				     mov dx, offset EndOfProgram	 ;
-     43	012C  D1 EA D1 EA D1 EA	D1+		     shr dx, 4				 ;
-     44	      EA
-     45	0134  42				     inc dx				 ;
-     46	0135  CD 21				     int 21h				 ;
-     47				     ;--------------------------------------------------------------;
-     48				     ;	       the end to setting the new keyboard handler	    ;
-     49				     ;--------------------------------------------------------------;
-     50
+     40
+     41	0124  BB 0020				     mov bx, 08h * 4d			 ; set the offset to change the	adress of   +
+     42				     timer handler
+     43	0127  26: 8B 07				     mov ax, es:[bx]
+     44
+     45	012A  2E: A3 0078r			     mov cs:[offs_old_hand08], ax	 ; save	the offset of the old handler
+     46	012E  26: 8B 47	02			     mov ax, es:[bx + 2]
+     47	0132  2E: A3 007Ar			     mov cs:[segm_old_hand08], ax	 ; save	the segment of the old handler
+     48
+     49
+     50	0136  FA				     cli				 ; throw off the flag of interruptions
      51
-     52
-     53	0137			     ShowRegisters PROC	NEAR
-     54	0137  2E: 89 26	005Cr			     mov cs:[value_sp],	sp		 ; save	the values from
-     55	013C  2E: 89 2E	005Ar			     mov cs:[value_bp],	bp		 ; save	the value from BP
-     56	0141  2E: A3 004Er			     mov cs:[value_ax],	ax		 ; save	the values of registers	to print
+     52	0137  26: C7 07	03D3r			     mov es:[bx], offset NewTimeHand	 ; set the offset of the new timer handler
+     53	013C  8C C8				     mov ax, cs
+     54	013E  26: 89 47	02			     mov es:[bx	+ 2], ax		 ; set the segment of the new timer handler
+     55
+     56	0142  FB				     sti				 ; allow interruptions
      57
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 2
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 2
 resident.asm
 
 
 
-     58	0145  2E: 8B 2E	005Cr			     mov bp, cs:[value_sp]		 ; SP can be change, so	we save	the value SP+
-     59				     in	BP
-     60	014A  8B 46 00				     mov ax, [bp]			 ; save	values of registers (IP, CS) from   +
-     61				     stack
-     62	014D  2E: A3 0066r			     mov cs:[value_ip],	ax		 ;
-     63	0151  8B 46 02				     mov ax, [bp + 2]			 ;
-     64	0154  2E: A3 0064r			     mov cs:[value_cs],	ax		 ;
-     65
-     66	0158  2E: 89 1E	0050r			     mov cs:[value_bx],	bx		 ;
-     67	015D  2E: 89 0E	0052r			     mov cs:[value_cx],	cx		 ;
-     68	0162  2E: 89 16	0054r			     mov cs:[value_dx],	dx		 ;
-     69	0167  2E: 89 36	0056r			     mov cs:[value_si],	si		 ;
-     70	016C  2E: 89 3E	0058r			     mov cs:[value_di],	di		 ;
-     71	0171  2E: 8C 1E	005Er			     mov cs:[value_ds],	ds		 ;
-     72	0176  2E: 8C 06	0060r			     mov cs:[value_es],	es		 ;
-     73	017B  2E: 8C 16	0062r			     mov cs:[value_ss],	ss		 ;
-     74
-     75											 ; push	isn't necessary, because we already +
-     76				     saved values of registers
-     77
-     78	0180  B8 B800				     mov ax, VIDEO_SEG			 ; set the ES:BX (segment:offset) to the    +
-     79				     place of screen, where will be printing a first symbol
-     80	0183  8E C0				     mov es, ax				 ;
-     81	0185  BB 01C0				     mov bx, (80d * 2d + 64d) *	2d	 ;
-     82
-     83	0188  E4 60				     in	al, 60h				 ; set symbol code to AL from the port 60h
-     84	018A  3C 1F				     cmp al, HOT_KEY			 ; compare AL with the HOT_KEY
-     85	018C  75 03				     jne SkipPrintFrame			 ; if (AL != HOT_KEY) go to SkipPrintFrame
-     86	018E  E8 003C				     call PrintFrame			 ; else	go to PrintFrame
-     87
-     88
-     89	0191			     SkipPrintFrame:
-     90				     ;		      in al, 61h			  ; tell the keyboard that the signal has   +
-     91				     been read
-     92				     ;		      or al, 80h			  ;
-     93				     ;		      out 61h, al			  ;
-     94				     ;		      and al, not 80h			  ;
-     95				     ;		      out 61h, al			  ;
+     58
+     59	0143  B8 3100				     mov ax, 3100h			 ; keep	resident after finish the program   +
+     60				     (don't clear the products of the program)
+     61	0146  BA 007Er				     mov dx, offset EndOfProgram	 ;
+     62	0149  D1 EA D1 EA D1 EA	D1+		     shr dx, 4d				 ;
+     63	      EA
+     64	0151  42				     inc dx				 ;
+     65	0152  CD 21				     int 21h				 ;
+     66				     ;--------------------------------------------------------------;
+     67				     ;		    the	end to setting the new handlers		    ;
+     68				     ;--------------------------------------------------------------;
+     69
+     70
+     71
+     72	0154			     ShowRegisters PROC	NEAR
+     73	0154  2E: 89 26	005Cr			     mov cs:[value_sp],	sp		 ; save	the values from
+     74	0159  2E: 89 2E	005Ar			     mov cs:[value_bp],	bp		 ; save	the value from BP
+     75	015E  2E: A3 004Er			     mov cs:[value_ax],	ax		 ; save	the values of registers	to print
+     76
+     77	0162  2E: 8B 2E	005Cr			     mov bp, cs:[value_sp]		 ; SP can be change, so	we save	the value SP+
+     78				     in	BP
+     79	0167  8B 46 00				     mov ax, [bp]			 ; save	values of registers (IP, CS) from   +
+     80				     stack
+     81	016A  2E: A3 0066r			     mov cs:[value_ip],	ax		 ;
+     82	016E  8B 46 02				     mov ax, [bp + 2]			 ;
+     83	0171  2E: A3 0064r			     mov cs:[value_cs],	ax		 ;
+     84
+     85	0175  2E: 89 1E	0050r			     mov cs:[value_bx],	bx		 ;
+     86	017A  2E: 89 0E	0052r			     mov cs:[value_cx],	cx		 ;
+     87	017F  2E: 89 16	0054r			     mov cs:[value_dx],	dx		 ;
+     88	0184  2E: 89 36	0056r			     mov cs:[value_si],	si		 ;
+     89	0189  2E: 89 3E	0058r			     mov cs:[value_di],	di		 ;
+     90	018E  2E: 8C 1E	005Er			     mov cs:[value_ds],	ds		 ;
+     91	0193  2E: 8C 06	0060r			     mov cs:[value_es],	es		 ;
+     92	0198  2E: 8C 16	0062r			     mov cs:[value_ss],	ss		 ;
+     93
+     94											 ; push	isn't necessary, because we already +
+     95				     saved values of registers
      96
-     97				     ;		      mov al, 20h			  ; tell the interrupts	handler	that the    +
-     98				     handling is finish
-     99				     ;		      out 20h, al			  ;
-    100
+     97	019D  B8 B800				     mov ax, VIDEO_SEG			 ; set the ES:BX (segment:offset) to the    +
+     98				     place of screen, where will be printing a first symbol
+     99	01A0  8E C0				     mov es, ax				 ;
+    100	01A2  BB 01C0				     mov bx, (80d * 2d + 64d) *	2d	 ;
     101
-    102	0191  2E: 8B 26	005Cr			     mov sp, cs:[value_sp]		 ; return the values to	the registers
-    103	0196  2E: 8B 2E	005Ar			     mov bp, cs:[value_bp]		 ; instead of "pop"
-    104	019B  2E: A1 004Er			     mov ax, cs:[value_ax]		 ;
-    105	019F  2E: 8B 1E	0050r			     mov bx, cs:[value_bx]		 ;
-    106	01A4  2E: 8B 0E	0052r			     mov cx, cs:[value_cx]		 ;
-    107	01A9  2E: 8B 16	0054r			     mov dx, cs:[value_dx]		 ;
-    108	01AE  2E: 8B 36	0056r			     mov si, cs:[value_si]		 ;
-    109	01B3  2E: 8B 3E	0058r			     mov di, cs:[value_di]		 ;
-    110	01B8  2E: 8E 1E	005Er			     mov ds, cs:[value_ds]		 ;
-    111	01BD  2E: 8E 06	0060r			     mov es, cs:[value_es]		 ;
-    112	01C2  2E: 8E 16	0062r			     mov ss, cs:[value_ss]		 ;
-    113
-    114
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 3
+    102	01A5  E4 60				     in	al, 60h				 ; set symbol code to AL from the port 60h
+    103	01A7  3C 1F				     cmp al, HOT_KEY_PRINT_FRAME
+    104	01A9  75 06				     jne CheckHotKeyUpdRegs		 ; if (AL != HOT_KEY_PRINT_FRAME): go to    +
+    105				     CheckHotKeyUpdRegs
+    106	01AB  E8 006A				     call PrintFrame			 ; else: go to PrintFrame
+    107	01AE  EB 2C 90				     jmp SkipPrintFrame
+    108
+    109	01B1			     CheckHotKeyUpdRegs:
+    110	01B1  2E: 80 3E	007Cr 00		     cmp cs:[flg_frame_on_scrn], 0
+    111	01B7  74 23				     je	SkipPrintFrame			 ; if (frame isn't on the screen) go to	    +
+    112				     SkipPrintFrame
+    113	01B9  3C 14				     cmp al, HOT_KEY_UPD_REGS		 ;
+    114	01BB  74 03				     je	SwitchFlagUpdatingRegs		 ; if (AL == HOT_KEY_UPD_REGS) go to	    +
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 3
 resident.asm
 
 
 
-    115	01C7  EA				     db	0eah				 ; JMP FAR (return the management to the old+
-    116				     handler)
-    117	01C8  0000		     offs_old_hand09 dw	0				 ;
-    118	01CA  0000		     segm_old_hand09 dw	0				 ;
+    115				     SwitchFlagUpdatingRegs
+    116	01BD  EB 1D 90				     jmp SkipPrintFrame			 ; else: go to SkipPrintFrame
+    117
+    118
     119
-    120	01CC  C3				     ret				 ; will	not to complete
-    121
-    122	01CD			     ShowRegisters ENDP
-    123
-    124
-    125
-    126	01CD			     PrintFrame	PROC NEAR
-    127	01CD  50 53 51 52 56 57	55+		     push ax bx	cx dx si di bp sp ds es	ss
-    128	      54 1E 06 16
-    129
-    130
-    131	01D8  BE 0001				     mov si, 1d				 ; SI is a number of register to the print  +
-    132				     (AX - 1; BX - 2; CX - 3; DX - 4; SI - 5; DI - 6; BP - 7; SP - 8; DS - 9; ES - 10; SS - 11;	CS -+
-    133				     12; IP - 13)
+    120	01C0			     SwitchFlagUpdatingRegs:				 ; change the value of the updating flag
+    121	01C0  2E: 80 3E	007Dr 00		     cmp cs:[flg_updating_regs], 0	 ;
+    122	01C6  75 0A				     jne TurnOffFlagUpdatingRegs	 ; (if the flag	was be 1, he will be 0)
+    123											 ; (if the flag	was be 0, he will be 1)
+    124	01C8  2E: C6 06	007Dr 01  +		     mov cs:[flg_updating_regs], 1d	 ;
+    125	      90
+    126	01CF  EB 0B 90				     jmp SkipPrintFrame			 ;
+    127											 ;
+    128	01D2			     TurnOffFlagUpdatingRegs:				 ;
+    129	01D2  2E: C6 06	007Dr 00  +		     mov cs:[flg_updating_regs], 0d	 ;
+    130	      90
+    131	01D9  EB 01 90				     jmp SkipPrintFrame			 ;
+    132
+    133
     134
-    135	01DB			     PrintString:
-    136				     ;--------------------------------------------------------------;
-    137				     ;		  prepare the data to printing registers	    ;
-    138				     ;--------------------------------------------------------------;
-    139	01DB  B9 0000				     mov cx, 0				 ; counter (we need to print 4 symbols for  +
-    140				     each register) for	label "PrintValue"
-    141
-    142											 ; switch (si) {
-    143	01DE  83 FE 01				     cmp si, 1d				 ;   case 1:
-    144	01E1  74 48					 je PrepareAX			 ;	 go to PrepareAX
-    145	01E3  83 FE 02				     cmp si, 2d				 ;   case 2:
-    146	01E6  74 4E					 je PrepareBX			 ;	 go to PrepareBX
-    147	01E8  83 FE 03				     cmp si, 3d				 ;   case 3:
-    148	01EB  74 54					 je PrepareCX			 ;	 go to PrepareCX
-    149	01ED  83 FE 04				     cmp si, 4d				 ;   case 4:
-    150	01F0  74 5A					 je PrepareDX			 ;	 go to PrepareDX
-    151	01F2  83 FE 05				     cmp si, 5d				 ;   case 5:
-    152	01F5  74 60					 je PrepareSI			 ;	 go to PrepareSI
-    153	01F7  83 FE 06				     cmp si, 6d				 ;   case 6:
-    154	01FA  74 66					 je PrepareDI			 ;	 go to PrepareDI
-    155	01FC  83 FE 07				     cmp si, 7d				 ;   case 7:
-    156	01FF  74 6C					 je PrepareBP			 ;	 go to PrepareBP
-    157	0201  83 FE 08				     cmp si, 8d				 ;   case 8:
-    158	0204  74 72					 je PrepareSP			 ;	 go to PrepareSP
-    159	0206  83 FE 09				     cmp si, 9d				 ;   case 9:
-    160	0209  74 78					 je PrepareDS			 ;	 go to PrepareDS
-    161	020B  83 FE 0A				     cmp si, 10d			 ;   case 10:
-    162	020E  74 7E					 je PrepareES			 ;	 go to PrepareES
-    163	0210  83 FE 0B				     cmp si, 11d			 ;   case 11:
-    164	0213  75 03					 jne CheckCS			 ;
-    165	0215  E9 0081					 jmp near ptr PrepareSS		 ;	 go to PrepareSS
-    166	0218  83 FE 0C		     CheckCS:	     cmp si, 12d			 ;   case 12:
-    167	021B  75 03					 jne CheckIP			 ;
-    168	021D  E9 0084					 jmp near ptr PrepareCS		 ;	 go to PrepareCS
-    169	0220  83 FE 0D		     CheckIP:	     cmp si, 13d			 ;   case 13:
-    170	0223  75 03					 jne CheckDefault		 ;
-    171	0225  E9 0087					 jmp near ptr PrepareIP		 ;	 go to PrepareIP
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 4
+    135
+    136	01DC			     SkipPrintFrame:
+    137				     ;		      in al, 61h			  ; tell the keyboard that the signal has   +
+    138				     been read
+    139				     ;		      or al, 80h			  ;
+    140				     ;		      out 61h, al			  ;
+    141				     ;		      and al, not 80h			  ;
+    142				     ;		      out 61h, al			  ;
+    143
+    144				     ;		      mov al, 20h			  ; tell the interrupts	handler	that the    +
+    145				     handling is finish
+    146				     ;		      out 20h, al			  ;
+    147
+    148
+    149	01DC  2E: 8B 26	005Cr			     mov sp, cs:[value_sp]		 ; return the values to	the registers
+    150	01E1  2E: 8B 2E	005Ar			     mov bp, cs:[value_bp]		 ; instead of "pop"
+    151	01E6  2E: A1 004Er			     mov ax, cs:[value_ax]		 ;
+    152	01EA  2E: 8B 1E	0050r			     mov bx, cs:[value_bx]		 ;
+    153	01EF  2E: 8B 0E	0052r			     mov cx, cs:[value_cx]		 ;
+    154	01F4  2E: 8B 16	0054r			     mov dx, cs:[value_dx]		 ;
+    155	01F9  2E: 8B 36	0056r			     mov si, cs:[value_si]		 ;
+    156	01FE  2E: 8B 3E	0058r			     mov di, cs:[value_di]		 ;
+    157	0203  2E: 8E 1E	005Er			     mov ds, cs:[value_ds]		 ;
+    158	0208  2E: 8E 06	0060r			     mov es, cs:[value_es]		 ;
+    159	020D  2E: 8E 16	0062r			     mov ss, cs:[value_ss]		 ;
+    160
+    161
+    162	0212  EA				     db	0eah				 ; JMP FAR (return the management to the old+
+    163				     handler)
+    164	0213  0000		     offs_old_hand09 dw	0				 ;
+    165	0215  0000		     segm_old_hand09 dw	0				 ;
+    166
+    167	0217  C3				     ret				 ; will	not to complete
+    168
+    169	0218			     ShowRegisters ENDP
+    170
+    171
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 4
 resident.asm
 
 
 
-    172	0228  E9 008F		     CheckDefault:   jmp DefaultRegister		 ;   default:
-    173											 ;	 go to DefaultRegister}
-    174
-    175
+    172
+    173	0218			     PrintFrame	PROC NEAR
+    174	0218  50 53 51 52 56 57	55+		     push ax bx	cx dx si di bp sp ds es	ss
+    175	      54 1E 06 16
     176
-    177	022B			     PrepareAX:
-    178	022B  BF 0000r				     mov di, offset base_text_ax	 ; set offset the symbol for print to DI
-    179
-    180	022E  2E: 8B 16	004Er			     mov dx, cs:[value_ax]		 ; the value will be keep in DX
-    181	0233  E9 0089				     jmp PrintBaseString
-    182
-    183	0236			     PrepareBX:
-    184	0236  BF 0006r				     mov di, offset base_text_bx	 ; set offset the symbol for print to DI
-    185
-    186	0239  2E: 8B 16	0050r			     mov dx, cs:[value_bx]		 ; the value will be keep in DX
-    187	023E  EB 7F 90				     jmp PrintBaseString
-    188
-    189	0241			     PrepareCX:
-    190	0241  BF 000Cr				     mov di, offset base_text_cx	 ; set offset the symbol for print to DI
+    177
+    178	0223  2E: C6 06	007Cr 01  +		     mov cs:[flg_frame_on_scrn], 1	 ; set the flag	of frame on the	screen
+    179	      90
+    180
+    181	022A  BE 0001				     mov si, 1d				 ; SI is a number of register to the print  +
+    182				     (AX - 1; BX - 2; CX - 3; DX - 4; SI - 5; DI - 6; BP - 7; SP - 8; DS - 9; ES - 10; SS - 11;	CS -+
+    183				     12; IP - 13)
+    184
+    185	022D			     PrintString:
+    186				     ;--------------------------------------------------------------;
+    187				     ;		  prepare the data to printing registers	    ;
+    188				     ;--------------------------------------------------------------;
+    189	022D  B9 0000				     mov cx, 0				 ; counter (we need to print 4 symbols for  +
+    190				     each register) for	label "PrintValue"
     191
-    192	0244  2E: 8B 16	0052r			     mov dx, cs:[value_cx]		 ; the value will be keep in DX
-    193	0249  EB 74 90				     jmp PrintBaseString
-    194
-    195	024C			     PrepareDX:
-    196	024C  BF 0012r				     mov di, offset base_text_dx	 ; set offset the symbol for print to DI
-    197
-    198	024F  2E: 8B 16	0054r			     mov dx, cs:[value_dx]		 ; the value will be keep in DX
-    199	0254  EB 69 90				     jmp PrintBaseString
-    200
-    201	0257			     PrepareSI:
-    202	0257  BF 0018r				     mov di, offset base_text_si	 ; set offset the symbol for print to DI
-    203
-    204	025A  2E: 8B 16	0056r			     mov dx, cs:[value_si]		 ; the value will be keep in DX
-    205	025F  EB 5E 90				     jmp PrintBaseString
-    206
-    207	0262			     PrepareDI:
-    208	0262  BF 001Er				     mov di, offset base_text_di	 ; set offset the symbol for print to DI
-    209
-    210	0265  2E: 8B 16	0058r			     mov dx, cs:[value_di]		 ; the value will be keep in DX
-    211	026A  EB 53 90				     jmp PrintBaseString
-    212
-    213	026D			     PrepareBP:
-    214	026D  BF 0024r				     mov di, offset base_text_bp	 ; set offset the symbol for print to DI
-    215
-    216	0270  2E: 8B 16	005Ar			     mov dx, cs:[value_bp]		 ; the value will be keep in DX
-    217	0275  EB 48 90				     jmp PrintBaseString
-    218
-    219	0278			     PrepareSP:
-    220	0278  BF 002Ar				     mov di, offset base_text_sp	 ; set offset the symbol for print to DI
-    221
-    222	027B  2E: 8B 16	005Cr			     mov dx, cs:[value_sp]		 ; the value will be keep in DX
-    223	0280  EB 3D 90				     jmp PrintBaseString
+    192											 ; switch (si) {
+    193	0230  83 FE 01				     cmp si, 1d				 ;   case 1:
+    194	0233  74 48					 je PrepareAX			 ;	 go to PrepareAX
+    195	0235  83 FE 02				     cmp si, 2d				 ;   case 2:
+    196	0238  74 4E					 je PrepareBX			 ;	 go to PrepareBX
+    197	023A  83 FE 03				     cmp si, 3d				 ;   case 3:
+    198	023D  74 54					 je PrepareCX			 ;	 go to PrepareCX
+    199	023F  83 FE 04				     cmp si, 4d				 ;   case 4:
+    200	0242  74 5A					 je PrepareDX			 ;	 go to PrepareDX
+    201	0244  83 FE 05				     cmp si, 5d				 ;   case 5:
+    202	0247  74 60					 je PrepareSI			 ;	 go to PrepareSI
+    203	0249  83 FE 06				     cmp si, 6d				 ;   case 6:
+    204	024C  74 66					 je PrepareDI			 ;	 go to PrepareDI
+    205	024E  83 FE 07				     cmp si, 7d				 ;   case 7:
+    206	0251  74 6C					 je PrepareBP			 ;	 go to PrepareBP
+    207	0253  83 FE 08				     cmp si, 8d				 ;   case 8:
+    208	0256  74 72					 je PrepareSP			 ;	 go to PrepareSP
+    209	0258  83 FE 09				     cmp si, 9d				 ;   case 9:
+    210	025B  74 78					 je PrepareDS			 ;	 go to PrepareDS
+    211	025D  83 FE 0A				     cmp si, 10d			 ;   case 10:
+    212	0260  74 7E					 je PrepareES			 ;	 go to PrepareES
+    213	0262  83 FE 0B				     cmp si, 11d			 ;   case 11:
+    214	0265  75 03					 jne CheckCS			 ;
+    215	0267  E9 0081					 jmp near ptr PrepareSS		 ;	 go to PrepareSS
+    216	026A  83 FE 0C		     CheckCS:	     cmp si, 12d			 ;   case 12:
+    217	026D  75 03					 jne CheckIP			 ;
+    218	026F  E9 0084					 jmp near ptr PrepareCS		 ;	 go to PrepareCS
+    219	0272  83 FE 0D		     CheckIP:	     cmp si, 13d			 ;   case 13:
+    220	0275  75 03					 jne CheckDefault		 ;
+    221	0277  E9 0087					 jmp near ptr PrepareIP		 ;	 go to PrepareIP
+    222	027A  E9 008F		     CheckDefault:   jmp DefaultRegister		 ;   default:
+    223											 ;	 go to DefaultRegister}
     224
-    225	0283			     PrepareDS:
-    226	0283  BF 0030r				     mov di, offset base_text_ds	 ; set offset the symbol for print to DI
-    227
-    228	0286  2E: 8B 16	005Er			     mov dx, cs:[value_ds]		 ; the value will be keep in DX
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 5
+    225
+    226
+    227	027D			     PrepareAX:
+    228	027D  BF 0000r				     mov di, offset base_text_ax	 ; set offset the symbol for print to DI
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 5
 resident.asm
 
 
 
-    229	028B  EB 32 90				     jmp PrintBaseString
-    230
-    231	028E			     PrepareES:
-    232	028E  BF 0036r				     mov di, offset base_text_es	 ; set offset the symbol for print to DI
-    233
-    234	0291  2E: 8B 16	0060r			     mov dx, cs:[value_es]		 ; the value will be keep in DX
-    235	0296  EB 27 90				     jmp PrintBaseString
-    236
-    237	0299			     PrepareSS:
-    238	0299  BF 003Cr				     mov di, offset base_text_ss	 ; set offset the symbol for print to DI
-    239
-    240	029C  2E: 8B 16	0062r			     mov dx, cs:[value_ss]		 ; the value will be keep in DX
-    241	02A1  EB 1C 90				     jmp PrintBaseString
-    242
-    243	02A4			     PrepareCS:
-    244	02A4  BF 0042r				     mov di, offset base_text_cs	 ; set offset the symbol for print to DI
-    245
-    246	02A7  2E: 8B 16	0064r			     mov dx, cs:[value_cs]		 ; the value will be keep in DX
-    247	02AC  EB 11 90				     jmp PrintBaseString
-    248
-    249	02AF			     PrepareIP:
-    250	02AF  BF 0048r				     mov di, offset base_text_ip	 ; set offset the symbol for print to DI
-    251
-    252	02B2  2E: 8B 16	0066r			     mov dx, cs:[value_ip]		 ; the value will be keep in DX
-    253	02B7  EB 06 90				     jmp PrintBaseString
-    254
-    255	02BA			     DefaultRegister:
-    256	02BA  B8 4C00				     mov ax, 4c00h
-    257	02BD  CD 21				     int 21h
-    258				     ;--------------------------------------------------------------;
-    259				     ;			   the end of preparing			    ;
-    260				     ;--------------------------------------------------------------;
-    261
+    229
+    230	0280  2E: 8B 16	004Er			     mov dx, cs:[value_ax]		 ; the value will be keep in DX
+    231	0285  E9 0089				     jmp PrintBaseString
+    232
+    233	0288			     PrepareBX:
+    234	0288  BF 0006r				     mov di, offset base_text_bx	 ; set offset the symbol for print to DI
+    235
+    236	028B  2E: 8B 16	0050r			     mov dx, cs:[value_bx]		 ; the value will be keep in DX
+    237	0290  EB 7F 90				     jmp PrintBaseString
+    238
+    239	0293			     PrepareCX:
+    240	0293  BF 000Cr				     mov di, offset base_text_cx	 ; set offset the symbol for print to DI
+    241
+    242	0296  2E: 8B 16	0052r			     mov dx, cs:[value_cx]		 ; the value will be keep in DX
+    243	029B  EB 74 90				     jmp PrintBaseString
+    244
+    245	029E			     PrepareDX:
+    246	029E  BF 0012r				     mov di, offset base_text_dx	 ; set offset the symbol for print to DI
+    247
+    248	02A1  2E: 8B 16	0054r			     mov dx, cs:[value_dx]		 ; the value will be keep in DX
+    249	02A6  EB 69 90				     jmp PrintBaseString
+    250
+    251	02A9			     PrepareSI:
+    252	02A9  BF 0018r				     mov di, offset base_text_si	 ; set offset the symbol for print to DI
+    253
+    254	02AC  2E: 8B 16	0056r			     mov dx, cs:[value_si]		 ; the value will be keep in DX
+    255	02B1  EB 5E 90				     jmp PrintBaseString
+    256
+    257	02B4			     PrepareDI:
+    258	02B4  BF 001Er				     mov di, offset base_text_di	 ; set offset the symbol for print to DI
+    259
+    260	02B7  2E: 8B 16	0058r			     mov dx, cs:[value_di]		 ; the value will be keep in DX
+    261	02BC  EB 53 90				     jmp PrintBaseString
     262
-    263
-    264				     ;--------------------------------------------------------------;
-    265				     ;			 start to print	registers		    ;
-    266				     ;--------------------------------------------------------------;
-    267	02BF			     PrintBaseString:
-    268	02BF  2E: 8A 05				     mov al, cs:[di]			 ; transfer the	symbol from CS:[DI] to AL   +
-    269				     (exacly CS, cause CS - segment where saved	all functions and strings)
-    270	02C2  B4 2E				     mov ah, COLOR_TEXT
+    263	02BF			     PrepareBP:
+    264	02BF  BF 0024r				     mov di, offset base_text_bp	 ; set offset the symbol for print to DI
+    265
+    266	02C2  2E: 8B 16	005Ar			     mov dx, cs:[value_bp]		 ; the value will be keep in DX
+    267	02C7  EB 48 90				     jmp PrintBaseString
+    268
+    269	02CA			     PrepareSP:
+    270	02CA  BF 002Ar				     mov di, offset base_text_sp	 ; set offset the symbol for print to DI
     271
-    272	02C4  3C 24				     cmp al, '$'			 ; if (symbol == '$'): go to PrintValue
-    273	02C6  74 09				     je	PrintValue			 ;
+    272	02CD  2E: 8B 16	005Cr			     mov dx, cs:[value_sp]		 ; the value will be keep in DX
+    273	02D2  EB 3D 90				     jmp PrintBaseString
     274
-    275	02C8  26: 89 07				     mov es:[bx], ax			 ; print symbol	in his place
-    276	02CB  83 C3 02				     add bx, 2d				 ; moving the place of print to	1 position  +
-    277				     (2	bytes)
-    278
-    279	02CE  47				     inc di				 ; get the next	adress of symbol in	    +
-    280				     base_text_ax
-    281	02CF  EB EE				     jmp PrintBaseString
-    282
+    275	02D5			     PrepareDS:
+    276	02D5  BF 0030r				     mov di, offset base_text_ds	 ; set offset the symbol for print to DI
+    277
+    278	02D8  2E: 8B 16	005Er			     mov dx, cs:[value_ds]		 ; the value will be keep in DX
+    279	02DD  EB 32 90				     jmp PrintBaseString
+    280
+    281	02E0			     PrepareES:
+    282	02E0  BF 0036r				     mov di, offset base_text_es	 ; set offset the symbol for print to DI
     283
-    284	02D1			     PrintValue:
-    285	02D1  D1 C2 D1 C2 D1 C2	D1+		     rol dx, 4d				 ; set to position 4 bits
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 6
+    284	02E3  2E: 8B 16	0060r			     mov dx, cs:[value_es]		 ; the value will be keep in DX
+    285	02E8  EB 27 90				     jmp PrintBaseString
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 6
 resident.asm
 
 
 
-    286	      C2
-    287	02D9  8B FA				     mov di, dx
-    288	02DB  83 E7 0F				     and di, 0000000000001111b		 ; reset the remaining bits
-    289	02DE  81 C7 0068r			     add di, offset convert_num		 ; DI -	offset to the right symbol in str   +
-    290				     convert_num, so CS:[DI] - symbol in HEX
-    291
-    292	02E2  2E: 8A 05				     mov al, cs:[di]			 ; transfer the	symbol from CS:[DI] to AL
-    293	02E5  B4 2E				     mov ah, COLOR_TEXT
-    294
-    295	02E7  26: 89 07				     mov es:[bx], ax			 ; update the place (ES:[BX]) and print	the +
-    296				     symbol
-    297	02EA  83 C3 02				     add bx, 2d				 ;
+    286
+    287	02EB			     PrepareSS:
+    288	02EB  BF 003Cr				     mov di, offset base_text_ss	 ; set offset the symbol for print to DI
+    289
+    290	02EE  2E: 8B 16	0062r			     mov dx, cs:[value_ss]		 ; the value will be keep in DX
+    291	02F3  EB 1C 90				     jmp PrintBaseString
+    292
+    293	02F6			     PrepareCS:
+    294	02F6  BF 0042r				     mov di, offset base_text_cs	 ; set offset the symbol for print to DI
+    295
+    296	02F9  2E: 8B 16	0064r			     mov dx, cs:[value_cs]		 ; the value will be keep in DX
+    297	02FE  EB 11 90				     jmp PrintBaseString
     298
-    299	02ED  41				     inc cx				 ; counter++
-    300	02EE  83 F9 04				     cmp cx, 4d				 ; if (cx < 4):	go to PrintValue
-    301	02F1  72 DE				     jb	PrintValue			 ;
-    302
-    303
-    304	02F3  81 C3 008E			     add bx, 2 * (80 - 9)		 ; transfer BX on the next string
-    305	02F7  46				     inc si
-    306	02F8  83 FE 0D				     cmp si, 13d			 ; if (SI > 13):	//13 - number of    +
-    307				     registers to print
-    308	02FB  77 03				     ja	MakeFrame			 ; go to MakeFrame
-    309	02FD  E9 FEDB				     jmp near ptr PrintString		 ; else: go to PrintString
+    299	0301			     PrepareIP:
+    300	0301  BF 0048r				     mov di, offset base_text_ip	 ; set offset the symbol for print to DI
+    301
+    302	0304  2E: 8B 16	0066r			     mov dx, cs:[value_ip]		 ; the value will be keep in DX
+    303	0309  EB 06 90				     jmp PrintBaseString
+    304
+    305	030C			     DefaultRegister:
+    306	030C  B8 4C00				     mov ax, 4c00h
+    307	030F  CD 21				     int 21h
+    308				     ;--------------------------------------------------------------;
+    309				     ;			   the end of preparing			    ;
     310				     ;--------------------------------------------------------------;
-    311				     ;			 the end printing registers		    ;
-    312				     ;--------------------------------------------------------------;
+    311
+    312
     313
-    314
-    315
-    316	0300			     MakeFrame:
-    317				     ;--------------------------------------------------------------;
-    318				     ;			  start	to make	a frame			    ;
-    319				     ;--------------------------------------------------------------;
-    320	0300  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
-    321	0303			     MakeHorizontalLowerLine:
-    322	0303  B0 CD				     mov al, 205			 ; ASCII code of the horizontal	symbol
-    323	0305  B4 2E				     mov ah, COLOR_TEXT
-    324	0307  26: 89 07				     mov es:[bx], ax
-    325
-    326	030A  83 C3 02				     add bx, 2d				 ; change the position of printing
-    327	030D  41				     inc cx
+    314				     ;--------------------------------------------------------------;
+    315				     ;			 start to print	registers		    ;
+    316				     ;--------------------------------------------------------------;
+    317	0311			     PrintBaseString:
+    318	0311  2E: 8A 05				     mov al, cs:[di]			 ; transfer the	symbol from CS:[DI] to AL   +
+    319				     (exacly CS, cause CS - segment where saved	all functions and strings)
+    320	0314  B4 2E				     mov ah, COLOR_TEXT
+    321
+    322	0316  3C 24				     cmp al, '$'			 ; if (symbol == '$'): go to PrintValue
+    323	0318  74 09				     je	PrintValue			 ;
+    324
+    325	031A  26: 89 07				     mov es:[bx], ax			 ; print symbol	in his place
+    326	031D  83 C3 02				     add bx, 2d				 ; moving the place of print to	1 position  +
+    327				     (2	bytes)
     328
-    329	030E  83 F9 09				     cmp cx, 9d				 ; if (cx < 9):
-    330	0311  72 F0				     jb	MakeHorizontalLowerLine		 ; go to MakeHorizontalLowerLine
-    331
+    329	0320  47				     inc di				 ; get the next	adress of symbol in	    +
+    330				     base_text_ax
+    331	0321  EB EE				     jmp PrintBaseString
     332
-    333	0313			     MakeLowerRightCornerCharacter:
-    334	0313  B0 BC				     mov al, 188			 ; ASCII code of the lower-right corner	    +
-    335				     character
-    336	0315  B4 2E				     mov ah, COLOR_TEXT
-    337	0317  26: 89 07				     mov es:[bx], ax
-    338
-    339
-    340	031A  81 EB 00A0			     sub bx, 2 * 80			 ; change the position of printing to the   +
-    341				     next part of frame
-    342	031E  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 7
+    333
+    334	0323			     PrintValue:
+    335	0323  D1 C2 D1 C2 D1 C2	D1+		     rol dx, 4d				 ; set to position 4 bits
+    336	      C2
+    337	032B  8B FA				     mov di, dx
+    338	032D  83 E7 0F				     and di, 0000000000001111b		 ; reset the remaining bits
+    339	0330  81 C7 0068r			     add di, offset convert_num		 ; DI -	offset to the right symbol in str   +
+    340				     convert_num, so CS:[DI] - symbol in HEX
+    341
+    342	0334  2E: 8A 05				     mov al, cs:[di]			 ; transfer the	symbol from CS:[DI] to AL
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 7
 resident.asm
 
 
 
-    343	0321			     MakeVerticalRightLine:
-    344	0321  B0 BA				     mov al, 186			 ; ASCII code of the vertical symbol
-    345	0323  B4 2E				     mov ah, COLOR_TEXT
-    346	0325  26: 89 07				     mov es:[bx], ax
-    347
-    348	0328  81 EB 00A0			     sub bx, 2 * 80			 ; change the position of printing
-    349	032C  41				     inc cx
-    350
-    351	032D  83 F9 0D				     cmp cx, 13d			  ; if (cx < 9):
-    352	0330  72 EF				     jb	MakeVerticalRightLine		 ; go to MakeVerticalRightLine
+    343	0337  B4 2E				     mov ah, COLOR_TEXT
+    344
+    345	0339  26: 89 07				     mov es:[bx], ax			 ; update the place (ES:[BX]) and print	the +
+    346				     symbol
+    347	033C  83 C3 02				     add bx, 2d				 ;
+    348
+    349	033F  41				     inc cx				 ; counter++
+    350	0340  83 F9 04				     cmp cx, 4d				 ; if (cx < 4):	go to PrintValue
+    351	0343  72 DE				     jb	PrintValue			 ;
+    352
     353
-    354
-    355	0332			     MakeUpperRightCornerCharacter:
-    356	0332  B0 BB				     mov al, 187			 ; ASCII code of the upper-right corner	    +
-    357				     character
-    358	0334  B4 2E				     mov ah, COLOR_TEXT
-    359	0336  26: 89 07				     mov es:[bx], ax
-    360
-    361
-    362	0339  83 EB 02				     sub bx, 2				 ; change the position of printing to the   +
-    363				     next part of frame
-    364	033C  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
-    365	033F			     MakeHorizontalUpperLine:
-    366	033F  B0 CD				     mov al, 205			 ; ASCII code of the horizontal	symbol
-    367	0341  B4 2E				     mov ah, COLOR_TEXT
-    368	0343  26: 89 07				     mov es:[bx], ax
-    369
-    370	0346  83 EB 02				     sub bx, 2d				 ; change the position of printing
-    371	0349  41				     inc cx
-    372
-    373	034A  83 F9 09				     cmp cx, 9d				 ; if (cx < 9):
-    374	034D  72 F0				     jb	MakeHorizontalUpperLine		 ; go to MakeHorizontalUpperLine
+    354	0345  81 C3 008E			     add bx, 2 * (80 - 9)		 ; transfer BX on the next string
+    355	0349  46				     inc si
+    356	034A  83 FE 0D				     cmp si, 13d			 ; if (SI > 13):	//13 - number of    +
+    357				     registers to print
+    358	034D  77 03				     ja	MakeFrame			 ; go to MakeFrame
+    359	034F  E9 FEDB				     jmp near ptr PrintString		 ; else: go to PrintString
+    360				     ;--------------------------------------------------------------;
+    361				     ;			 the end printing registers		    ;
+    362				     ;--------------------------------------------------------------;
+    363
+    364
+    365
+    366	0352			     MakeFrame:
+    367				     ;--------------------------------------------------------------;
+    368				     ;			  start	to make	a frame			    ;
+    369				     ;--------------------------------------------------------------;
+    370	0352  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
+    371	0355			     MakeHorizontalLowerLine:
+    372	0355  B0 CD				     mov al, 205			 ; ASCII code of the horizontal	symbol
+    373	0357  B4 2E				     mov ah, COLOR_TEXT
+    374	0359  26: 89 07				     mov es:[bx], ax
     375
-    376
-    377	034F			     MakeUpperLeftCornerCharacter:
-    378	034F  B0 C9				     mov al, 201			 ; ASCII code of the upper-right corner	    +
-    379				     character
-    380	0351  B4 2E				     mov ah, COLOR_TEXT
-    381	0353  26: 89 07				     mov es:[bx], ax
+    376	035C  83 C3 02				     add bx, 2d				 ; change the position of printing
+    377	035F  41				     inc cx
+    378
+    379	0360  83 F9 09				     cmp cx, 9d				 ; if (cx < 9):
+    380	0363  72 F0				     jb	MakeHorizontalLowerLine		 ; go to MakeHorizontalLowerLine
+    381
     382
-    383
-    384	0356  81 C3 00A0			     add bx, 2 * 80			 ; change the position of printing to the   +
-    385				     next part of frame
-    386	035A  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
-    387	035D			     MakeVerticalLeftLine:
-    388	035D  B0 BA				     mov al, 186			 ; ASCII code of the vertical symbol
-    389	035F  B4 2E				     mov ah, COLOR_TEXT
-    390	0361  26: 89 07				     mov es:[bx], ax
-    391
-    392	0364  81 C3 00A0			     add bx, 2 * 80			 ; change the position of printing
-    393	0368  41				     inc cx
-    394
-    395	0369  83 F9 0D				     cmp cx, 13d			  ; if (cx < 9):
-    396	036C  72 EF				     jb	MakeVerticalLeftLine		  ; go to MakeVerticalLeftLine
+    383	0365			     MakeLowerRightCornerCharacter:
+    384	0365  B0 BC				     mov al, 188			 ; ASCII code of the lower-right corner	    +
+    385				     character
+    386	0367  B4 2E				     mov ah, COLOR_TEXT
+    387	0369  26: 89 07				     mov es:[bx], ax
+    388
+    389
+    390	036C  81 EB 00A0			     sub bx, 2d	* 80d			 ; change the position of printing to the   +
+    391				     next part of frame
+    392	0370  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
+    393	0373			     MakeVerticalRightLine:
+    394	0373  B0 BA				     mov al, 186			 ; ASCII code of the vertical symbol
+    395	0375  B4 2E				     mov ah, COLOR_TEXT
+    396	0377  26: 89 07				     mov es:[bx], ax
     397
-    398
-    399	036E			     MakeLowerLeftCornerCharacter:
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 8
+    398	037A  81 EB 00A0			     sub bx, 2d	* 80d			 ; change the position of printing
+    399	037E  41				     inc cx
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 8
 resident.asm
 
 
 
-    400	036E  B0 C8				     mov al, 200			 ; ASCII code of the upper-right corner	    +
-    401				     character
-    402	0370  B4 2E				     mov ah, COLOR_TEXT
-    403	0372  26: 89 07				     mov es:[bx], ax
-    404				     ;--------------------------------------------------------------;
-    405				     ;			 the end to make a frame		    ;
-    406				     ;--------------------------------------------------------------;
-    407
-    408
-    409
-    410	0375			     EndOfPrintingRegisters:
-    411	0375  17 07 1F 5C 5D 5F	5E+		     pop ss es ds sp bp	di si dx cx bx ax
-    412	      5A 59 5B 58
-    413	0380  C3				     ret
-    414
-    415	0381			     PrintFrame	ENDP
-    416
-    417
-    418
-    419	0381			     .data
-    420	0000  41 58 20 3D 20 24	     base_text_ax db 'AX = ', '$'
-    421	0006  42 58 20 3D 20 24	     base_text_bx db 'BX = ', '$'
-    422	000C  43 58 20 3D 20 24	     base_text_cx db 'CX = ', '$'
-    423	0012  44 58 20 3D 20 24	     base_text_dx db 'DX = ', '$'
-    424	0018  53 49 20 3D 20 24	     base_text_si db 'SI = ', '$'
-    425	001E  44 49 20 3D 20 24	     base_text_di db 'DI = ', '$'
-    426	0024  42 50 20 3D 20 24	     base_text_bp db 'BP = ', '$'
-    427	002A  53 50 20 3D 20 24	     base_text_sp db 'SP = ', '$'
-    428	0030  44 53 20 3D 20 24	     base_text_ds db 'DS = ', '$'
-    429	0036  45 53 20 3D 20 24	     base_text_es db 'ES = ', '$'
-    430	003C  53 53 20 3D 20 24	     base_text_ss db 'SS = ', '$'
-    431	0042  43 53 20 3D 20 24	     base_text_cs db 'CS = ', '$'
-    432	0048  49 50 20 3D 20 24	     base_text_ip db 'IP = ', '$'
-    433	004E  0000		     value_ax	  dw 0
-    434	0050  0000		     value_bx	  dw 0
-    435	0052  0000		     value_cx	  dw 0
-    436	0054  0000		     value_dx	  dw 0
-    437	0056  0000		     value_si	  dw 0
-    438	0058  0000		     value_di	  dw 0
-    439	005A  0000		     value_bp	  dw 0
-    440	005C  0000		     value_sp	  dw 0
-    441	005E  0000		     value_ds	  dw 0
-    442	0060  0000		     value_es	  dw 0
-    443	0062  0000		     value_ss	  dw 0
-    444	0064  0000		     value_cs	  dw 0
-    445	0066  0000		     value_ip	  dw 0
-    446	0068  30 31 32 33 34 35	36+  convert_num  db "0123456789ABCDEF"
-    447	      37 38 39 41 42 43	44+
-    448	      45 46
-    449
-    450
-    451
-    452	0078			     EndOfProgram:
-    453				     End	     Start
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 9
+    400
+    401	037F  83 F9 0D				     cmp cx, 13d			 ; if (cx < 9):
+    402	0382  72 EF				     jb	MakeVerticalRightLine		 ; go to MakeVerticalRightLine
+    403
+    404
+    405	0384			     MakeUpperRightCornerCharacter:
+    406	0384  B0 BB				     mov al, 187			 ; ASCII code of the upper-right corner	    +
+    407				     character
+    408	0386  B4 2E				     mov ah, COLOR_TEXT
+    409	0388  26: 89 07				     mov es:[bx], ax
+    410
+    411
+    412	038B  83 EB 02				     sub bx, 2d				 ; change the position of printing to the   +
+    413				     next part of frame
+    414	038E  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
+    415	0391			     MakeHorizontalUpperLine:
+    416	0391  B0 CD				     mov al, 205			 ; ASCII code of the horizontal	symbol
+    417	0393  B4 2E				     mov ah, COLOR_TEXT
+    418	0395  26: 89 07				     mov es:[bx], ax
+    419
+    420	0398  83 EB 02				     sub bx, 2d				 ; change the position of printing
+    421	039B  41				     inc cx
+    422
+    423	039C  83 F9 09				     cmp cx, 9d				 ; if (cx < 9):
+    424	039F  72 F0				     jb	MakeHorizontalUpperLine		 ; go to MakeHorizontalUpperLine
+    425
+    426
+    427	03A1			     MakeUpperLeftCornerCharacter:
+    428	03A1  B0 C9				     mov al, 201			 ; ASCII code of the upper-right corner	    +
+    429				     character
+    430	03A3  B4 2E				     mov ah, COLOR_TEXT
+    431	03A5  26: 89 07				     mov es:[bx], ax
+    432
+    433
+    434	03A8  81 C3 00A0			     add bx, 2d	* 80d			 ; change the position of printing to the   +
+    435				     next part of frame
+    436	03AC  B9 0000				     mov cx, 0				 ; CX -	counter	of symbols
+    437	03AF			     MakeVerticalLeftLine:
+    438	03AF  B0 BA				     mov al, 186			 ; ASCII code of the vertical symbol
+    439	03B1  B4 2E				     mov ah, COLOR_TEXT
+    440	03B3  26: 89 07				     mov es:[bx], ax
+    441
+    442	03B6  81 C3 00A0			     add bx, 2d	* 80d			 ; change the position of printing
+    443	03BA  41				     inc cx
+    444
+    445	03BB  83 F9 0D				     cmp cx, 13d			 ; if (cx < 9):
+    446	03BE  72 EF				     jb	MakeVerticalLeftLine		 ; go to MakeVerticalLeftLine
+    447
+    448
+    449	03C0			     MakeLowerLeftCornerCharacter:
+    450	03C0  B0 C8				     mov al, 200			 ; ASCII code of the upper-right corner	    +
+    451				     character
+    452	03C2  B4 2E				     mov ah, COLOR_TEXT
+    453	03C4  26: 89 07				     mov es:[bx], ax
+    454				     ;--------------------------------------------------------------;
+    455				     ;			 the end to make a frame		    ;
+    456				     ;--------------------------------------------------------------;
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 9
+resident.asm
+
+
+
+    457
+    458
+    459
+    460	03C7			     EndOfPrintingRegisters:
+    461	03C7  17 07 1F 5C 5D 5F	5E+		     pop ss es ds sp bp	di si dx cx bx ax
+    462	      5A 59 5B 58
+    463	03D2  C3				     ret
+    464
+    465	03D3			     PrintFrame	ENDP
+    466
+    467
+    468
+    469				     ;--------------------------------------------------------------;
+    470				     ;		     updating registers	in real	time		    ;
+    471				     ;--------------------------------------------------------------;
+    472	03D3			     NewTimeHand PROC NEAR
+    473	03D3  2E: 89 26	005Cr			     mov cs:[value_sp],	sp		 ; save	the values from
+    474	03D8  2E: 89 2E	005Ar			     mov cs:[value_bp],	bp		 ; save	the value from BP
+    475	03DD  2E: A3 004Er			     mov cs:[value_ax],	ax		 ; save	the values of registers	to print
+    476
+    477	03E1  2E: 8B 2E	005Cr			     mov bp, cs:[value_sp]		 ; SP can be change, so	we save	the value SP+
+    478				     in	BP
+    479	03E6  8B 46 00				     mov ax, [bp]			 ; save	values of registers (IP, CS) from   +
+    480				     stack
+    481	03E9  2E: A3 0066r			     mov cs:[value_ip],	ax		 ;
+    482	03ED  8B 46 02				     mov ax, [bp + 2]			 ;
+    483	03F0  2E: A3 0064r			     mov cs:[value_cs],	ax		 ;
+    484
+    485	03F4  2E: 89 1E	0050r			     mov cs:[value_bx],	bx		 ;
+    486	03F9  2E: 89 0E	0052r			     mov cs:[value_cx],	cx		 ;
+    487	03FE  2E: 89 16	0054r			     mov cs:[value_dx],	dx		 ;
+    488	0403  2E: 89 36	0056r			     mov cs:[value_si],	si		 ;
+    489	0408  2E: 89 3E	0058r			     mov cs:[value_di],	di		 ;
+    490	040D  2E: 8C 1E	005Er			     mov cs:[value_ds],	ds		 ;
+    491	0412  2E: 8C 06	0060r			     mov cs:[value_es],	es		 ;
+    492	0417  2E: 8C 16	0062r			     mov cs:[value_ss],	ss		 ;
+    493
+    494
+    495	041C  9C				     pushf
+    496	041D  2E: FF 1E	0078r			     call dword	ptr cs:[offs_old_hand08]
+    497
+    498
+    499	0422  2E: 80 3E	007Dr 00		     cmp cs:[flg_updating_regs], 0	 ; if (flag of the udating registers is	ON):
+    500	0428  75 03				     jne UpdateRegisters		 ;   go	to UpdateRegisters
+    501	042A  EB 0C 90				     jmp EndOfUpdatingRegisters		 ; else: go to EndOfUpdatingRegisters
+    502
+    503	042D			     UpdateRegisters:
+    504	042D  B8 B800				     mov ax, VIDEO_SEG			 ; set the ES:BX (segment:offset) to the    +
+    505				     place of screen, where will be printing a first symbol
+    506	0430  8E C0				     mov es, ax				 ;
+    507	0432  BB 01C0				     mov bx, (80d * 2d + 64d) *	2d	 ;
+    508
+    509	0435  E8 FDE0				     call PrintFrame
+    510
+    511
+    512	0438			     EndOfUpdatingRegisters:
+    513	0438  2E: 8B 26	005Cr			     mov sp, cs:[value_sp]		 ; return the values to	the registers
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 10
+resident.asm
+
+
+
+    514	043D  2E: 8B 2E	005Ar			     mov bp, cs:[value_bp]		 ; instead of "pop"
+    515	0442  2E: A1 004Er			     mov ax, cs:[value_ax]		 ;
+    516	0446  2E: 8B 1E	0050r			     mov bx, cs:[value_bx]		 ;
+    517	044B  2E: 8B 0E	0052r			     mov cx, cs:[value_cx]		 ;
+    518	0450  2E: 8B 16	0054r			     mov dx, cs:[value_dx]		 ;
+    519	0455  2E: 8B 36	0056r			     mov si, cs:[value_si]		 ;
+    520	045A  2E: 8B 3E	0058r			     mov di, cs:[value_di]		 ;
+    521	045F  2E: 8E 1E	005Er			     mov ds, cs:[value_ds]		 ;
+    522	0464  2E: 8E 06	0060r			     mov es, cs:[value_es]		 ;
+    523	0469  2E: 8E 16	0062r			     mov ss, cs:[value_ss]		 ;
+    524
+    525	046E  CF				     iret
+    526
+    527	046F			     NewTimeHand ENDP
+    528				     ;--------------------------------------------------------------;
+    529				     ;		the end	of updating registers in real time	    ;
+    530				     ;--------------------------------------------------------------;
+    531
+    532
+    533
+    534	046F			     .data
+    535	0000  41 58 20 3D 20 24	     base_text_ax db 'AX = ', '$'
+    536	0006  42 58 20 3D 20 24	     base_text_bx db 'BX = ', '$'
+    537	000C  43 58 20 3D 20 24	     base_text_cx db 'CX = ', '$'
+    538	0012  44 58 20 3D 20 24	     base_text_dx db 'DX = ', '$'
+    539	0018  53 49 20 3D 20 24	     base_text_si db 'SI = ', '$'
+    540	001E  44 49 20 3D 20 24	     base_text_di db 'DI = ', '$'
+    541	0024  42 50 20 3D 20 24	     base_text_bp db 'BP = ', '$'
+    542	002A  53 50 20 3D 20 24	     base_text_sp db 'SP = ', '$'
+    543	0030  44 53 20 3D 20 24	     base_text_ds db 'DS = ', '$'
+    544	0036  45 53 20 3D 20 24	     base_text_es db 'ES = ', '$'
+    545	003C  53 53 20 3D 20 24	     base_text_ss db 'SS = ', '$'
+    546	0042  43 53 20 3D 20 24	     base_text_cs db 'CS = ', '$'
+    547	0048  49 50 20 3D 20 24	     base_text_ip db 'IP = ', '$'
+    548	004E  0000		     value_ax	  dw 0
+    549	0050  0000		     value_bx	  dw 0
+    550	0052  0000		     value_cx	  dw 0
+    551	0054  0000		     value_dx	  dw 0
+    552	0056  0000		     value_si	  dw 0
+    553	0058  0000		     value_di	  dw 0
+    554	005A  0000		     value_bp	  dw 0
+    555	005C  0000		     value_sp	  dw 0
+    556	005E  0000		     value_ds	  dw 0
+    557	0060  0000		     value_es	  dw 0
+    558	0062  0000		     value_ss	  dw 0
+    559	0064  0000		     value_cs	  dw 0
+    560	0066  0000		     value_ip	  dw 0
+    561	0068  30 31 32 33 34 35	36+  convert_num  db "0123456789ABCDEF"
+    562	      37 38 39 41 42 43	44+
+    563	      45 46
+    564
+    565	0078  0000		     offs_old_hand08	 dw 0
+    566	007A  0000		     segm_old_hand08	 dw 0
+    567
+    568	007C  00		     flg_frame_on_scrn	 db 0
+    569	007D  00		     flg_updating_regs	 db 0
+    570
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 11
+resident.asm
+
+
+
+    571
+    572
+    573	007E			     EndOfProgram:
+    574				     End	     Start
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 12
 Symbol Table
 
 
@@ -499,9 +635,9 @@ Symbol Table
 
 Symbol Name			  Type	 Value
 
-??DATE				  Text	 "03/13/26"
+??DATE				  Text	 "03/14/26"
 ??FILENAME			  Text	 "resident"
-??TIME				  Text	 "22:57:31"
+??TIME				  Text	 "20:57:57"
 ??VERSION			  Number 040A
 @32BIT				  Text	 0
 @CODE				  Text	 DGROUP
@@ -528,51 +664,62 @@ BASE_TEXT_IP			  Byte	 DGROUP:0048
 BASE_TEXT_SI			  Byte	 DGROUP:0018
 BASE_TEXT_SP			  Byte	 DGROUP:002A
 BASE_TEXT_SS			  Byte	 DGROUP:003C
-CHECKCS				  Near	 DGROUP:0218
-CHECKDEFAULT			  Near	 DGROUP:0228
-CHECKIP				  Near	 DGROUP:0220
+CHECKCS				  Near	 DGROUP:026A
+CHECKDEFAULT			  Near	 DGROUP:027A
+CHECKHOTKEYUPDREGS		  Near	 DGROUP:01B1
+CHECKIP				  Near	 DGROUP:0272
 COLOR_TEXT			  Number 002E
 CONVERT_NUM			  Byte	 DGROUP:0068
-DEFAULTREGISTER			  Near	 DGROUP:02BA
-ENDOFPRINTINGREGISTERS		  Near	 DGROUP:0375
-ENDOFPROGRAM			  Near	 DGROUP:0078
-HOT_KEY				  Number 001F
-MAKEFRAME			  Near	 DGROUP:0300
-MAKEHORIZONTALLOWERLINE		  Near	 DGROUP:0303
-MAKEHORIZONTALUPPERLINE		  Near	 DGROUP:033F
-MAKELOWERLEFTCORNERCHARACTER	  Near	 DGROUP:036E
-MAKELOWERRIGHTCORNERCHARACTER	  Near	 DGROUP:0313
-MAKEUPPERLEFTCORNERCHARACTER	  Near	 DGROUP:034F
-MAKEUPPERRIGHTCORNERCHARACTER	  Near	 DGROUP:0332
-MAKEVERTICALLEFTLINE		  Near	 DGROUP:035D
-MAKEVERTICALRIGHTLINE		  Near	 DGROUP:0321
-OFFS_OLD_HAND09			  Word	 DGROUP:01C8
-PREPAREAX			  Near	 DGROUP:022B
-PREPAREBP			  Near	 DGROUP:026D
-PREPAREBX			  Near	 DGROUP:0236
-PREPARECS			  Near	 DGROUP:02A4
-PREPARECX			  Near	 DGROUP:0241
-PREPAREDI			  Near	 DGROUP:0262
-Turbo Assembler	 Version 4.1	    03/13/26 22:57:31	    Page 10
+DEFAULTREGISTER			  Near	 DGROUP:030C
+ENDOFPRINTINGREGISTERS		  Near	 DGROUP:03C7
+ENDOFPROGRAM			  Near	 DGROUP:007E
+ENDOFUPDATINGREGISTERS		  Near	 DGROUP:0438
+FLG_FRAME_ON_SCRN		  Byte	 DGROUP:007C
+FLG_UPDATING_REGS		  Byte	 DGROUP:007D
+HOT_KEY_PRINT_FRAME		  Number 001F
+HOT_KEY_UPD_REGS		  Number 0014
+MAKEFRAME			  Near	 DGROUP:0352
+MAKEHORIZONTALLOWERLINE		  Near	 DGROUP:0355
+MAKEHORIZONTALUPPERLINE		  Near	 DGROUP:0391
+MAKELOWERLEFTCORNERCHARACTER	  Near	 DGROUP:03C0
+MAKELOWERRIGHTCORNERCHARACTER	  Near	 DGROUP:0365
+MAKEUPPERLEFTCORNERCHARACTER	  Near	 DGROUP:03A1
+MAKEUPPERRIGHTCORNERCHARACTER	  Near	 DGROUP:0384
+MAKEVERTICALLEFTLINE		  Near	 DGROUP:03AF
+MAKEVERTICALRIGHTLINE		  Near	 DGROUP:0373
+NEWTIMEHAND			  Near	 DGROUP:03D3
+OFFS_OLD_HAND08			  Word	 DGROUP:0078
+Turbo Assembler	 Version 4.1	    03/14/26 20:57:57	    Page 13
 Symbol Table
 
 
 
-PREPAREDS			  Near	 DGROUP:0283
-PREPAREDX			  Near	 DGROUP:024C
-PREPAREES			  Near	 DGROUP:028E
-PREPAREIP			  Near	 DGROUP:02AF
-PREPARESI			  Near	 DGROUP:0257
-PREPARESP			  Near	 DGROUP:0278
-PREPARESS			  Near	 DGROUP:0299
-PRINTBASESTRING			  Near	 DGROUP:02BF
-PRINTFRAME			  Near	 DGROUP:01CD
-PRINTSTRING			  Near	 DGROUP:01DB
-PRINTVALUE			  Near	 DGROUP:02D1
-SEGM_OLD_HAND09			  Word	 DGROUP:01CA
-SHOWREGISTERS			  Near	 DGROUP:0137
-SKIPPRINTFRAME			  Near	 DGROUP:0191
+OFFS_OLD_HAND09			  Word	 DGROUP:0213
+PREPAREAX			  Near	 DGROUP:027D
+PREPAREBP			  Near	 DGROUP:02BF
+PREPAREBX			  Near	 DGROUP:0288
+PREPARECS			  Near	 DGROUP:02F6
+PREPARECX			  Near	 DGROUP:0293
+PREPAREDI			  Near	 DGROUP:02B4
+PREPAREDS			  Near	 DGROUP:02D5
+PREPAREDX			  Near	 DGROUP:029E
+PREPAREES			  Near	 DGROUP:02E0
+PREPAREIP			  Near	 DGROUP:0301
+PREPARESI			  Near	 DGROUP:02A9
+PREPARESP			  Near	 DGROUP:02CA
+PREPARESS			  Near	 DGROUP:02EB
+PRINTBASESTRING			  Near	 DGROUP:0311
+PRINTFRAME			  Near	 DGROUP:0218
+PRINTSTRING			  Near	 DGROUP:022D
+PRINTVALUE			  Near	 DGROUP:0323
+SEGM_OLD_HAND08			  Word	 DGROUP:007A
+SEGM_OLD_HAND09			  Word	 DGROUP:0215
+SHOWREGISTERS			  Near	 DGROUP:0154
+SKIPPRINTFRAME			  Near	 DGROUP:01DC
 START				  Near	 DGROUP:0100
+SWITCHFLAGUPDATINGREGS		  Near	 DGROUP:01C0
+TURNOFFFLAGUPDATINGREGS		  Near	 DGROUP:01D2
+UPDATEREGISTERS			  Near	 DGROUP:042D
 VALUE_AX			  Word	 DGROUP:004E
 VALUE_BP			  Word	 DGROUP:005A
 VALUE_BX			  Word	 DGROUP:0050
@@ -591,6 +738,6 @@ VIDEO_SEG			  Number B800
 Groups & Segments		  Bit Size Align  Combine Class
 
 DGROUP				  Group
-  _DATA				  16  0078 Word	  Public  DATA
-  _TEXT				  16  0381 Word	  Public  CODE
+  _DATA				  16  007E Word	  Public  DATA
+  _TEXT				  16  046F Word	  Public  CODE
 
